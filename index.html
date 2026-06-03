@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a1a">
+  <title>宇宙卡牌 ✦ 命运之约</title>
+
+  <!-- ═════════════ 全局错误捕获 ═════════════ -->
+  <script>
+    (function() {
+      // JS 运行时错误
+      window.onerror = function(msg, url, line, col, err) {
+        var text = (err && err.stack) ? err.stack : msg;
+        var el = document.getElementById('error-toast');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'error-toast';
+          el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;max-width:90vw;max-height:120px;overflow-y:auto;background:rgba(200,30,30,0.92);backdrop-filter:blur(8px);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-family:monospace;white-space:pre-wrap;word-break:break-all;box-shadow:0 4px 24px rgba(200,30,30,0.4);border:1px solid rgba(255,100,100,0.3);cursor:pointer;transition:opacity .3s';
+          el.onclick = function(){ el.style.opacity='0'; setTimeout(function(){el.remove()},300) };
+          document.body.appendChild(el);
+        }
+        var span = document.createElement('div');
+        span.style.cssText = 'color:#ff6b6b;font-weight:700;margin-bottom:4px';
+        span.textContent = '⚠ 错误';
+        el.appendChild(span);
+        var pre = document.createElement('div');
+        pre.textContent = typeof text === 'string' ? text.slice(0, 300) : String(text);
+        el.appendChild(pre);
+        return true;
+      };
+      // Promise 未捕获 rejection
+      window.onunhandledrejection = function(e) {
+        var reason = e.reason;
+        window.onerror(reason && reason.message ? reason.message : String(reason), '', 0, 0, reason);
+      };
+    })();
+  </script>
+
+  <!-- ═══════════════ 样式 ═══════════════ -->
+  <style>
+    /* ── Reset & Global ── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #0a0a1a; color: #e0e0ff;
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      user-select: none; -webkit-user-select: none;
+    }
+
+    /* ── Error Toast ── */
+    #error-toast { display: none; } /* shown by JS */
+
+    /* ── Loading Overlay ── */
+    #loading-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at 50% 30%, #120a2e 0%, #0a0a1a 60%, #050510 100%);
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+    #loading-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    #loading-overlay .logo {
+      font-size: clamp(28px,6vw,52px); font-weight: 300; letter-spacing: 8px;
+      background: linear-gradient(135deg, #ff6a00, #ee0979, #7b2ff7, #00d4ff);
+      background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: gradShift 3s ease infinite; margin-bottom: 12px;
+    }
+    @keyframes gradShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    #loading-overlay .subtitle {
+      font-size: clamp(12px,2vw,18px); color: rgba(255,255,255,0.4);
+      letter-spacing: 4px; margin-bottom: 40px;
+    }
+    .loader-track {
+      width: min(80vw, 420px); height: 4px; border-radius: 4px;
+      background: rgba(255,255,255,0.08); overflow: hidden; margin-bottom: 12px;
+    }
+    .loader-bar {
+      width: 0%; height: 100%; border-radius: 4px;
+      background: linear-gradient(90deg, #ff6a00, #ee0979, #7b2ff7, #00d4ff);
+      background-size: 300% 100%;
+      animation: gradShift 2s linear infinite;
+      transition: width 0.4s ease;
+    }
+    .loader-text {
+      font-size: 13px; color: rgba(255,255,255,0.35);
+      letter-spacing: 2px; margin-top: 4px;
+    }
+
+    /* ── Intro Overlay ── */
+    #intro-overlay {
+      position: fixed; inset: 0; z-index: 900;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(5,5,16,0.85);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+    #intro-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    #intro-overlay .title {
+      font-size: clamp(32px,7vw,72px); font-weight: 700; letter-spacing: 6px;
+      text-align: center; line-height: 1.3;
+      background: linear-gradient(135deg, #ffd700, #ff6a00, #ee0979, #7b2ff7);
+      background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: gradShift 4s ease infinite;
+    }
+    #intro-overlay .desc {
+      margin-top: 20px; font-size: clamp(14px,2.5vw,22px);
+      color: rgba(255,255,255,0.5); letter-spacing: 6px; text-align: center;
+      padding: 0 20px;
+    }
+    #intro-overlay .btn-skip {
+      margin-top: 48px; padding: 12px 40px; border-radius: 50px;
+      background: rgba(255,255,255,0.06); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.7); font-size: 16px; letter-spacing: 3px;
+      cursor: pointer; transition: all 0.3s ease;
+    }
+    #intro-overlay .btn-skip:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.3);
+      transform: scale(1.04);
+    }
+
+    /* ── Three Container ── */
+    #three-container {
+      position: fixed; inset: 0; z-index: 1;
+    }
+
+    /* ── Header ── */
+    #header {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 100;
+      display: flex; align-items: center; gap: 16px;
+      padding: 10px 24px;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      opacity: 0; transform: translateX(-50%) translateY(-10px);
+      pointer-events: none;
+      min-width: min(90vw, 480px); justify-content: center;
+    }
+    #header.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+    #header .title-part {
+      font-size: clamp(12px,2vw,16px); font-weight: 600;
+      white-space: nowrap;
+      background: linear-gradient(90deg, #ffd700, #ff6a00);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    #header .progress-wrap {
+      flex: 1; min-width: 80px;
+    }
+    #header .progress-bar {
+      width: 100%; height: 4px; border-radius: 4px;
+      background: rgba(255,255,255,0.08); overflow: hidden;
+    }
+    #header .progress-fill {
+      width: 0%; height: 100%; border-radius: 4px;
+      background: linear-gradient(90deg, #ff6a00, #ee0979, #7b2ff7, #00d4ff);
+      background-size: 300% 100%; animation: gradShift 2s linear infinite;
+      transition: width 0.5s ease;
+    }
+    #header .count {
+      font-size: 13px; color: rgba(255,255,255,0.5); white-space: nowrap;
+    }
+    #header .count span { color: #ffd700; font-weight: 700; }
+
+    /* ── Video (隐藏) ── */
+    #hand-video {
+      position: fixed; top: -1000px; left: -1000px;
+      width: 1px; height: 1px; opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ── Custom Cursor ── */
+    #cursor-dot, #cursor-glow {
+      position: fixed; z-index: 200; pointer-events: none;
+      border-radius: 50%; transform: translate(-50%, -50%);
+      transition: width 0.3s, height 0.3s, background 0.3s, box-shadow 0.3s;
+    }
+    #cursor-dot {
+      width: 8px; height: 8px;
+      background: rgba(120, 200, 255, 0.9);
+      box-shadow: 0 0 12px rgba(120, 200, 255, 0.6);
+    }
+    #cursor-glow {
+      width: 60px; height: 60px;
+      background: radial-gradient(circle, rgba(120,200,255,0.15) 0%, transparent 70%);
+    }
+    #cursor-dot.pinching {
+      width: 20px; height: 20px;
+      background: #ff8c00;
+      box-shadow: 0 0 30px rgba(255, 140, 0, 0.8);
+    }
+    #cursor-glow.pinching {
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(255,140,0,0.25) 0%, transparent 70%);
+    }
+    /* 点击/触摸时隐藏原生光标 */
+    body.gesture-mode, body.gesture-mode * { cursor: none !important; }
+
+    /* ── Toast ── */
+    #toast-container {
+      position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+      z-index: 150; display: flex; flex-direction: column; align-items: center;
+      gap: 8px; pointer-events: none;
+    }
+    .toast {
+      padding: 14px 28px; border-radius: 14px;
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff; font-size: clamp(14px,2.5vw,18px);
+      letter-spacing: 2px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      white-space: nowrap;
+      pointer-events: auto;
+      animation: toastIn 0.5s ease forwards;
+    }
+    .toast.out { animation: toastOut 0.4s ease forwards; }
+    @keyframes toastIn {
+      0% { opacity: 0; transform: translateY(30px) scale(0.9); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes toastOut {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-20px) scale(0.9); }
+    }
+
+    /* ── Camera Fallback Hint ── */
+    #camera-hint {
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+      z-index: 80;
+      font-size: 13px; color: rgba(255,255,255,0.25);
+      letter-spacing: 2px; text-align: center;
+      pointer-events: none;
+      transition: opacity 0.8s;
+    }
+    #camera-hint.hidden { opacity: 0; }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      #header { top: 10px; padding: 8px 16px; gap: 10px; min-width: unset; width: 92vw; }
+      #header .title-part { font-size: 12px; }
+      #header .count { font-size: 11px; }
+      .toast { padding: 12px 20px; font-size: 14px; white-space: normal; max-width: 85vw; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════ DOM Elements ═══════════ -->
+
+  <!-- 错误 Toast（由 JS 注入，但占位确保 body 存在） -->
+
+  <!-- 加载遮罩 -->
+  <div id="loading-overlay">
+    <div class="logo">✦ 宇宙卡牌 ✦</div>
+    <div class="subtitle">命运之约</div>
+    <div class="loader-track">
+      <div class="loader-bar" id="loader-bar"></div>
+    </div>
+    <div class="loader-text" id="loader-text">正在唤醒星辰之力…</div>
+  </div>
+
+  <!-- 入场动画层 -->
+  <div id="intro-overlay">
+    <div class="title">星 辰 命 运</div>
+    <div class="desc">以指尖触碰星辰 · 揭开你的命运之牌</div>
+    <button class="btn-skip" id="btn-start">✦ 开始探索</button>
+  </div>
+
+  <!-- Three.js 渲染目标 -->
+  <div id="three-container"></div>
+
+  <!-- 顶部 Header -->
+  <header id="header">
+    <span class="title-part">✦ 宇宙卡牌</span>
+    <div class="progress-wrap">
+      <div class="progress-bar">
+        <div class="progress-fill" id="collection-bar"></div>
+      </div>
+    </div>
+    <span class="count">剩余 <span id="collected-num">8</span>/<span id="total-num">8</span></span>
+  </header>
+
+  <!-- 隐藏视频（MediaPipe 摄像头源） -->
+  <video id="hand-video" playsinline></video>
+
+  <!-- 手势光标 -->
+  <div id="cursor-glow"></div>
+  <div id="cursor-dot"></div>
+
+  <!-- Toast 容器 -->
+  <div id="toast-container"></div>
+
+  <!-- 摄像头提示 -->
+  <div id="camera-hint">🤚 张开手掌面对屏幕 · 握拳选牌 🤜</div>
+
+  <!-- ═══════════ 外部脚本（非模块） ═══════════ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js">
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js">
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js">
+  </script>
+
+  <!-- ═══════════ Three.js importmap ═══════════ -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- ═══════════ 主程序模块 ═══════════ -->
+  <script type="module">
+  // ─────────────────────────────────────────────
+  //  1. 导入
+  // ─────────────────────────────────────────────
+  import * as THREE from 'three';
+  import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+  import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+  import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+  // ─────────────────────────────────────────────
+  //  2. 常量与配置
+  // ─────────────────────────────────────────────
+  const TOTAL_CARDS = 8;
+  const CYLINDER_RADIUS = 3.2;
+  let animFrameId = null;
+  // 圆柱旋转状态（绝对位置映射）
+  let cylinderAngle = 0;
+  let cylinderVelocity = 0;
+  let lastHandX = 0.5;
+  let handInFrame = false;
+  // 手势张开度（指数平滑，用于光标反馈）
+  let handOpenness = 0.15;
+  // 上一帧是否为握拳（用于转换检测）
+  let wasFist = false;
+
+  // ─────────────────────────────────────────────
+  //  3. PHOTO_BASE64 — 预留，可替换为真实图片
+  // ─────────────────────────────────────────────
+  const PHOTO_BASE64 = {
+    back: '', // 卡背 base64（留空则使用 canvas 生成）
+    cards: new Array(TOTAL_CARDS).fill('')
+  };
+
+  // ─────────────────────────────────────────────
+  //  4. DOM 引用
+  // ─────────────────────────────────────────────
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => document.querySelectorAll(s);
+
+  const loaderBar    = $('#loader-bar');
+  const loaderText   = $('#loader-text');
+  const loadingOver  = $('#loading-overlay');
+  const introOver    = $('#intro-overlay');
+  const header       = $('#header');
+  const collectBar   = $('#collection-bar');
+  const collectNum   = $('#collected-num');
+  const totalNum     = $('#total-num');
+  const threeCont    = $('#three-container');
+  const videoEl      = $('#hand-video');
+  const cursorDot    = $('#cursor-dot');
+  const cursorGlow   = $('#cursor-glow');
+  const toastCont    = $('#toast-container');
+  const cameraHint   = $('#camera-hint');
+  const btnStart     = $('#btn-start');
+
+  totalNum.textContent = TOTAL_CARDS;
+
+  // ─────────────────────────────────────────────
+  //  5. 卡牌数据
+  // ─────────────────────────────────────────────
+  const CARD_DESIGNS = [
+    { name: '银河之眼',   hue1: 220, hue2: 280, symbol: 's' },
+    { name: '星云之门',   hue1: 300, hue2: 340, symbol: 'c' },
+    { name: '暗影领主',   hue1: 350, hue2: 260, symbol: 't' },
+    { name: '星辰之女',   hue1: 40,  hue2: 200, symbol: 'r' },
+    { name: '虚空使者',   hue1: 180, hue2: 240, symbol: 'd' },
+    { name: '凤凰涅槃',   hue1: 20,  hue2: 50,  symbol: 'h' },
+    { name: '冰霜巨龙',   hue1: 190, hue2: 230, symbol: 'o' },
+    { name: '命运之轮',   hue1: 45,  hue2: 300, symbol: 'x' },
+  ];
+
+  // ─────────────────────────────────────────────
+  //  6. Canvas 纹理生成
+  // ─────────────────────────────────────────────
+  function generateCardFront(design, idx) {
+    const c = document.createElement('canvas');
+    c.width = 400; c.height = 600;
+    const ctx = c.getContext('2d');
+    const { name, hue1, hue2, symbol } = design;
+
+    // 背景渐变
+    const grad = ctx.createRadialGradient(200, 300, 50, 200, 300, 320);
+    grad.addColorStop(0, `hsl(${hue1}, 90%, 55%)`);
+    grad.addColorStop(0.5, `hsl(${(hue1+hue2)/2}, 85%, 25%)`);
+    grad.addColorStop(1, `hsl(${hue2}, 90%, 10%)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 400, 600);
+
+    // 星星
+    for (let i = 0; i < 120; i++) {
+      const x = Math.random() * 400, y = Math.random() * 600;
+      const r = Math.random() * 2 + 0.5;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.6+0.2})`;
+      ctx.fill();
+    }
+
+    // 边框
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 2;
+    ctx.roundRect(10, 10, 380, 580, 12);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.roundRect(18, 18, 364, 564, 8);
+    ctx.stroke();
+
+    // 中心符号
+    ctx.save();
+    ctx.translate(200, 260);
+
+    // 根据 symbol 绘制不同图案
+    const colors = [`hsl(${hue1+30}, 100%, 70%)`, `hsl(${hue2-20}, 100%, 60%)`];
+    if (symbol === 's') {
+      // 螺旋
+      for (let a = 0; a < Math.PI*4; a += 0.15) {
+        const rad = 8 + a * 10;
+        const x = Math.cos(a) * rad, y = Math.sin(a) * rad;
+        ctx.beginPath(); ctx.arc(x, y, 3 + a*0.3, 0, Math.PI*2);
+        ctx.fillStyle = `hsl(${hue1 + a*5}, 90%, ${60 + Math.sin(a)*20}%)`;
+        ctx.fill();
+      }
+    } else if (symbol === 'c') {
+      // 星云环
+      for (let i = 0; i < 20; i++) {
+        const a = (i/20)*Math.PI*2, r = 40 + Math.sin(i*1.5)*15;
+        ctx.beginPath(); ctx.arc(Math.cos(a)*r, Math.sin(a)*r, 8, 0, Math.PI*2);
+        ctx.fillStyle = `hsla(${hue1+i*8}, 90%, 60%, 0.5)`;
+        ctx.fill();
+      }
+    } else if (symbol === 't') {
+      // 暗影三角
+      for (let i = 0; i < 3; i++) {
+        const a = (i/3)*Math.PI*2 - Math.PI/2;
+        const x = Math.cos(a)*60, y = Math.sin(a)*60;
+        ctx.beginPath(); ctx.arc(x, y, 20, 0, Math.PI*2);
+        ctx.fillStyle = `hsla(${hue2}, 80%, 30%, 0.6)`;
+        ctx.fill();
+      }
+    } else if (symbol === 'r') {
+      // 星芒
+      for (let i = 0; i < 8; i++) {
+        const a = (i/8)*Math.PI*2;
+        ctx.save(); ctx.rotate(a);
+        ctx.fillStyle = `hsl(${hue1+i*10}, 100%, 70%)`;
+        ctx.fillRect(-3, -50, 6, 50);
+        ctx.restore();
+      }
+    } else if (symbol === 'd') {
+      // 菱形
+      ctx.fillStyle = `hsl(${hue1}, 90%, 50%)`;
+      ctx.beginPath();
+      ctx.moveTo(0, -55); ctx.lineTo(55, 0); ctx.lineTo(0, 55); ctx.lineTo(-55, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = `hsl(${hue2}, 100%, 70%)`;
+      ctx.lineWidth = 3; ctx.stroke();
+    } else if (symbol === 'h') {
+      // 火焰
+      for (let i = 0; i < 30; i++) {
+        const a = Math.random()*Math.PI*2, r = Math.random()*50;
+        ctx.beginPath(); ctx.arc(Math.cos(a)*r, Math.sin(a)*r, 3+Math.random()*6, 0, Math.PI*2);
+        ctx.fillStyle = `hsla(${hue1+Math.random()*30}, 100%, ${50+Math.random()*30}%, 0.6)`;
+        ctx.fill();
+      }
+    } else if (symbol === 'o') {
+      // 冰晶
+      for (let i = 0; i < 6; i++) {
+        const a = (i/6)*Math.PI*2;
+        ctx.save(); ctx.rotate(a);
+        for (let j = 0; j < 5; j++) {
+          ctx.fillStyle = `hsla(${hue1+j*5}, 80%, ${70-j*8}%, 0.4)`;
+          ctx.fillRect(-2+j*2, -55+j*8, 4, 15);
+        }
+        ctx.restore();
+      }
+    } else {
+      // 命运之轮
+      for (let i = 0; i < 12; i++) {
+        const a = (i/12)*Math.PI*2;
+        ctx.beginPath(); ctx.arc(Math.cos(a)*45, Math.sin(a)*45, 6, 0, Math.PI*2);
+        ctx.fillStyle = `hsl(${hue1+i*10}, 100%, 60%)`;
+        ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(255,215,0,0.6)'; ctx.lineWidth = 3; ctx.stroke();
+    }
+    ctx.restore();
+
+    // 名称
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = 'bold 32px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(name, 200, 560);
+
+    return c;
+  }
+
+  function generateCardBack() {
+    if (PHOTO_BASE64.back) {
+      const img = new Image(); img.src = PHOTO_BASE64.back;
+      return img;
+    }
+    const c = document.createElement('canvas');
+    c.width = 400; c.height = 600;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createRadialGradient(200, 300, 20, 200, 300, 300);
+    grad.addColorStop(0, '#2d1b69'); grad.addColorStop(0.5, '#1a0e3d'); grad.addColorStop(1, '#0a0518');
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, 400, 600);
+
+    // 星点
+    for (let i = 0; i < 80; i++) {
+      ctx.beginPath(); ctx.arc(Math.random()*400, Math.random()*600, Math.random()*1.5+0.3, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.4+0.1})`;
+      ctx.fill();
+    }
+
+    // 中央符文
+    ctx.save(); ctx.translate(200, 300);
+    for (let i = 0; i < 8; i++) {
+      const a = (i/8)*Math.PI*2;
+      ctx.beginPath(); ctx.arc(Math.cos(a)*34, Math.sin(a)*34, 6, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(180,140,255,${0.15+Math.sin(i)*0.1})`;
+      ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(0, 0, 50, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(180,140,255,0.2)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(180,140,255,0.15)';
+    ctx.lineWidth = 2; ctx.roundRect(10, 10, 380, 580, 12); ctx.stroke();
+
+    return c;
+  }
+
+  // roundRect polyfill for canvas
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+      r = Math.min(r, w/2, h/2);
+      this.moveTo(x + r, y);
+      this.arcTo(x + w, y, x + w, y + h, r);
+      this.arcTo(x + w, y + h, x, y + h, r);
+      this.arcTo(x, y + h, x, y, r);
+      this.arcTo(x, y, x + w, y, r);
+      return this;
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  //  7. Three.js 场景初始化
+  // ─────────────────────────────────────────────
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a1a);
+
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 0, 6);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  threeCont.appendChild(renderer.domElement);
+
+  // 后期
+  const composer = new EffectComposer(renderer);
+  const renderPass = new RenderPass(scene, camera);
+  composer.addPass(renderPass);
+
+  const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    0.6, 0.2, 0.1
+  );
+  composer.addPass(bloomPass);
+
+  // ─────────────────────────────────────────────
+  //  8. 星空粒子
+  // ─────────────────────────────────────────────
+  const STAR_COUNT = 6000;
+  const starGeo = new THREE.BufferGeometry();
+  const positions = new Float32Array(STAR_COUNT * 3);
+  const sizes = new Float32Array(STAR_COUNT);
+  const colors = new Float32Array(STAR_COUNT * 3);
+
+  for (let i = 0; i < STAR_COUNT; i++) {
+    const radius = 15 + Math.random() * 85;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i*3]   = radius * Math.sin(phi) * Math.cos(theta);
+    positions[i*3+1] = radius * Math.sin(phi) * Math.sin(theta);
+    positions[i*3+2] = radius * Math.cos(phi);
+    sizes[i] = 0.2 + Math.random() * 1.2;
+    const tint = Math.random();
+    if (tint < 0.33) {
+      colors[i*3]=1; colors[i*3+1]=0.8; colors[i*3+2]=0.6; // 暖
+    } else if (tint < 0.66) {
+      colors[i*3]=0.6; colors[i*3+1]=0.7; colors[i*3+2]=1; // 蓝
+    } else {
+      colors[i*3]=0.9; colors[i*3+1]=0.5; colors[i*3+2]=1; // 紫
+    }
+  }
+
+  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  starGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+  starGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const starMat = new THREE.PointsMaterial({
+    size: 0.15, vertexColors: true, transparent: true, opacity: 0.9,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+    sizeAttenuation: true,
+  });
+  const stars = new THREE.Points(starGeo, starMat);
+  scene.add(stars);
+
+  // 一些较大的闪烁星星（另一层）
+  const sparkleGeo = new THREE.BufferGeometry();
+  const spPos = new Float32Array(300 * 3);
+  for (let i = 0; i < 300; i++) {
+    const r = 20 + Math.random() * 60;
+    const t = Math.random() * Math.PI * 2;
+    const p = Math.acos(2 * Math.random() - 1);
+    spPos[i*3]   = r * Math.sin(p) * Math.cos(t);
+    spPos[i*3+1] = r * Math.sin(p) * Math.sin(t);
+    spPos[i*3+2] = r * Math.cos(p);
+  }
+  sparkleGeo.setAttribute('position', new THREE.BufferAttribute(spPos, 3));
+  const sparkleMat = new THREE.PointsMaterial({
+    size: 0.35, color: 0xffffff, transparent: true, opacity: 0.6,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  const sparkles = new THREE.Points(sparkleGeo, sparkleMat);
+  scene.add(sparkles);
+
+  // ─────────────────────────────────────────────
+  //  9. 卡牌 3D 管理 — 圆柱转盘
+  // ─────────────────────────────────────────────
+  const cardGroups = [];
+  const cylinderGroup = new THREE.Group();
+  scene.add(cylinderGroup);
+  let drawnCount = 0;
+
+  // 预生成纹理
+  function buildCardTextures() {
+    const textures = [];
+    CARD_DESIGNS.forEach((d, i) => {
+      const canvas = PHOTO_BASE64.cards[i]
+        ? (() => { const img = new Image(); img.src = PHOTO_BASE64.cards[i]; return img; })()
+        : generateCardFront(d, i);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      textures.push(tex);
+    });
+    return textures;
+  }
+  const cardFrontTextures = buildCardTextures();
+
+  const backCanvas = generateCardBack();
+  const backTexture = new THREE.CanvasTexture(backCanvas);
+  backTexture.colorSpace = THREE.SRGBColorSpace;
+
+  // 预创建全部 8 张卡牌，加入圆柱组
+  function initCardGroups() {
+    const geo = new THREE.PlaneGeometry(1.2, 1.8);
+    for (let i = 0; i < TOTAL_CARDS; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        map: backTexture, side: THREE.DoubleSide, transparent: true,
+      });
+      const mesh = new THREE.Mesh(geo.clone(), mat);
+      mesh.userData = { index: i, frontTex: cardFrontTextures[i], drawn: false };
+      mesh.scale.set(1, 1, 1);
+      cylinderGroup.add(mesh);
+      cardGroups.push(mesh);
+    }
+  }
+
+  // 排列成圆柱：背面朝外
+  function layoutCardCylinder() {
+    cardGroups.forEach((mesh, i) => {
+      const angle = (i / TOTAL_CARDS) * Math.PI * 2;
+      mesh.position.x = Math.sin(angle) * CYLINDER_RADIUS;
+      mesh.position.z = Math.cos(angle) * CYLINDER_RADIUS;
+      mesh.rotation.y = angle; // 正面(+Z)朝外 → 背纹理可见
+    });
+  }
+
+  // 找出最接近相机（+Z 方向）的一张未抽卡牌（60° 内才可抓取）
+  function getFrontCardIndex() {
+    const MAX_ANGLE = Math.PI / 3; // 60°
+    let minDist = Infinity, frontIdx = -1;
+    cardGroups.forEach((mesh, i) => {
+      if (mesh.userData.drawn) return;
+      const localAngle = (i / TOTAL_CARDS) * Math.PI * 2;
+      const worldAngle = localAngle + cylinderAngle;
+      const norm = ((worldAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      const dist = Math.min(norm, Math.PI * 2 - norm);
+      if (dist < minDist && dist < MAX_ANGLE) { minDist = dist; frontIdx = i; }
+    });
+    return frontIdx; // -1 = 没有卡牌在可抓取范围内
+  }
+
+  // ─────────────────────────────────────────────
+  //  10. 动画：选牌（飞至中心）+ 亮牌（旋转+金光+抖动）
+  // ─────────────────────────────────────────────
+
+  // 从圆柱取卡，脱离到 scene 根，飞向屏幕中心（仍显示背面）
+  function animateSelectCard(cardMesh, callback) {
+    const worldPos = new THREE.Vector3();
+    cardMesh.getWorldPosition(worldPos);
+
+    cylinderGroup.remove(cardMesh);
+    scene.add(cardMesh);
+    cardMesh.position.copy(worldPos);
+
+    // 直接计算世界 Y 旋转，避免四元数→欧拉角的万向锁（gimbal lock）问题
+    const cardAngle = (cardMesh.userData.index / TOTAL_CARDS) * Math.PI * 2;
+    let totalAngle = cardAngle + cylinderAngle;
+    totalAngle = ((totalAngle % (Math.PI * 2)) + (Math.PI * 2)) % (Math.PI * 2);
+    const normY = totalAngle > Math.PI ? totalAngle - Math.PI * 2 : totalAngle;
+    cardMesh.rotation.set(0, normY, 0);
+
+    gsap.timeline({
+      onComplete: () => { if (callback) callback(); }
+    })
+    .to(cardMesh.position, {
+      x: 0, y: 0, z: 2.0,
+      duration: 0.6, ease: 'power3.out',
+    })
+    .to(cardMesh.rotation, {
+      y: 0, duration: 0.6, ease: 'power2.out',
+    }, '-=0.6');
+  }
+
+  // 金色散射粒子迸发（卡牌四条边迸发粒子，向外散射）
+  function createEdgeFlash(cardMesh) {
+    const PARTICLE_COUNT = 120;
+    const hw = 0.6, hh = 0.9; // 卡牌半宽半高（PlaneGeometry 1.2×1.8）
+
+    // 粒子初始位置 + 速度
+    const initPos = new Float32Array(PARTICLE_COUNT * 3);
+    const vels = [];
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const edge = Math.floor(Math.random() * 4);
+      const speed = 0.5 + Math.random() * 1.2;
+      const spread = 0.3 + Math.random() * 0.7;
+      let x, y, vx, vy;
+
+      if (edge === 0) { // 上边：向上散射
+        x = (Math.random() - 0.5) * hw * 1.6;
+        y = hh;
+        vx = (Math.random() - 0.5) * spread;
+        vy = speed;
+      } else if (edge === 1) { // 下边：向下散射
+        x = (Math.random() - 0.5) * hw * 1.6;
+        y = -hh;
+        vx = (Math.random() - 0.5) * spread;
+        vy = -speed;
+      } else if (edge === 2) { // 左边：向左散射
+        x = -hw;
+        y = (Math.random() - 0.5) * hh * 1.6;
+        vx = -speed;
+        vy = (Math.random() - 0.5) * spread;
+      } else { // 右边：向右散射
+        x = hw;
+        y = (Math.random() - 0.5) * hh * 1.6;
+        vx = speed;
+        vy = (Math.random() - 0.5) * spread;
+      }
+
+      initPos[i*3]   = x;
+      initPos[i*3+1] = y;
+      initPos[i*3+2] = 0.05;
+      vels.push({ x: vx, y: vy, z: (Math.random() - 0.5) * 0.4 });
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(initPos.slice(), 3));
+
+    // 金色粒子纹理：径向渐变圆点
+    const tc = document.createElement('canvas');
+    tc.width = 32; tc.height = 32;
+    const tctx = tc.getContext('2d');
+    const g = tctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    g.addColorStop(0,   'rgba(255,255,230,1)');
+    g.addColorStop(0.2, 'rgba(255,235,100,1)');
+    g.addColorStop(0.5, 'rgba(255,200,50,0.7)');
+    g.addColorStop(1,   'rgba(255,160,20,0)');
+    tctx.fillStyle = g;
+    tctx.fillRect(0, 0, 32, 32);
+    const tex = new THREE.CanvasTexture(tc);
+
+    const mat = new THREE.PointsMaterial({
+      map: tex, size: 0.09,
+      blending: THREE.AdditiveBlending,
+      transparent: true, depthWrite: false, opacity: 1,
+    });
+
+    const particles = new THREE.Points(geo, mat);
+    cardMesh.add(particles);
+
+    // GSAP 驱动粒子散射动画
+    const state = { t: 0 };
+    const posAttr = particles.geometry.attributes.position;
+
+    gsap.to(state, {
+      t: 1,
+      duration: 0.8,
+      ease: 'power2.out',
+      onUpdate: () => {
+        const e = state.t;
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+          const i3 = i * 3;
+          posAttr.array[i3]   = initPos[i3]   + vels[i].x * e * 1.2;
+          posAttr.array[i3+1] = initPos[i3+1] + vels[i].y * e * 1.2;
+          posAttr.array[i3+2] = initPos[i3+2] + vels[i].z * e * 1.2;
+        }
+        posAttr.needsUpdate = true;
+        mat.opacity = 1 - e * e;           // 后段加速淡出
+        mat.size = 0.09 * (1 - e * 0.6);    // 逐渐缩小
+      },
+      onComplete: () => {
+        cardMesh.remove(particles);
+        geo.dispose();
+        mat.dispose();
+        tex.dispose();
+      }
+    });
+  }
+
+  // 亮牌动画：旋转3圈 → 金光 → 抖动 → 跳出 → 展示正面
+  function animateRevealCard(cardMesh, callback) {
+    const tl = gsap.timeline({
+      onComplete: () => { if (callback) callback(); }
+    });
+
+    // ① 顺时针高速旋转3圈
+    tl.to(cardMesh.rotation, {
+      y: cardMesh.rotation.y + Math.PI * 6,
+      duration: 1.4, ease: 'power2.inOut',
+    })
+    // ② 四边金光一闪（作为子级跟随卡牌）
+    .call(() => {
+      createEdgeFlash(cardMesh);
+    })
+    // ③ 在中心抖动 + 跳出感（以0为中心振荡）
+    .to(cardMesh.position, {
+      x: 0.04, duration: 0.02, yoyo: true, repeat: 7,
+      ease: 'none',
+    })
+    .set(cardMesh.position, { x: 0 })
+    // ④ 压缩翻转
+    .to(cardMesh.scale, {
+      y: 0.01, duration: 0.1, ease: 'none',
+    })
+    .call(function() {
+      cardMesh.material.map = cardMesh.userData.frontTex;
+      cardMesh.material.needsUpdate = true;
+    })
+    .to(cardMesh.scale, {
+      y: 1, duration: 0.1, ease: 'none',
+    })
+    // ⑤ 弹跳放大展示
+    .to(cardMesh.scale, {
+      x: 1.3, y: 1.3, z: 1.3,
+      duration: 0.45, ease: 'back.out(3)',
+    })
+    // ⑥ 停留
+    .to({}, { duration: 2.0 })
+    // ⑦ 缩小消失
+    .to(cardMesh.scale, {
+      x: 0, y: 0, z: 0,
+      duration: 0.4, ease: 'power2.in',
+    })
+    .call(function() {
+      scene.remove(cardMesh);
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  //  11. 抽卡逻辑：两阶段
+  // ─────────────────────────────────────────────
+
+  // 阶段A：握拳 → 选中最前卡牌，移至中心等待
+  function selectCard() {
+    if (gestureState !== 'idle') return;
+    const remaining = cardGroups.filter(m => !m.userData.drawn).length;
+    if (remaining === 0) {
+      showToast('✦ 所有卡牌已抽取完毕 ✦');
+      return;
+    }
+
+    gestureState = 'card_selected';
+    cardSelectTime = Date.now(); // 记录选牌时间，进入冷却
+    const frontIdx = getFrontCardIndex();
+    if (frontIdx === -1) {
+      gestureState = 'idle';
+      showToast('🖐 调整位置，让卡牌靠近中间再抓取');
+      return;
+    }
+    selectedCard = cardGroups[frontIdx];
+
+    animateSelectCard(selectedCard, () => {
+      // 保持 card_selected 状态，等待展开手掌
+    });
+  }
+
+  // 阶段B：展开 → 亮牌动画
+  function revealCard() {
+    if (gestureState !== 'card_selected' || !selectedCard) return;
+    if (selectedCard.userData.drawn) return;
+
+    gestureState = 'revealing';
+    selectedCard.userData.drawn = true;
+    drawnCount++;
+    const cardIndex = selectedCard.userData.index;
+
+    showToast(`✦ ${CARD_DESIGNS[cardIndex].name} ✦`);
+
+    animateRevealCard(selectedCard, () => {
+      selectedCard = null;
+      gestureState = 'idle';
+      const rem = cardGroups.filter(m => !m.userData.drawn).length;
+      collectNum.textContent = rem;
+      collectBar.style.width = `${(rem / TOTAL_CARDS) * 100}%`;
+      if (rem === 0) {
+        setTimeout(() => showToast('🌟 所有宇宙之力已为你所用！ 🌟'), 600);
+      }
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  //  12. Toast 系统
+  // ─────────────────────────────────────────────
+  function showToast(text, duration) {
+    duration = duration || 2800;
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = text;
+    toastCont.appendChild(el);
+
+    setTimeout(() => {
+      el.classList.add('out');
+      setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 450);
+    }, duration);
+  }
+
+  // ─────────────────────────────────────────────
+  //  13. MediaPipe 手势
+  // ─────────────────────────────────────────────
+  let mediaPipeReady = false;
+  let cursorTarget = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  let cursorCurrent = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  let mediaPipeFailed = false;
+  // 手势状态机
+  let gestureState = 'idle';       // 'idle' | 'card_selected' | 'revealing'
+  let selectedCard = null;         // 当前选中的卡牌 mesh
+  let handInitialized = false;     // 首次检测到手时初始化平滑值
+  let cardSelectTime = 0;          // 选牌时间戳，用于冷却期内禁用张开检测
+  const SELECT_COOLDOWN_MS = 500;  // 选牌后冷却时间（ms），防止误触亮牌
+
+  let mediaPipeCamera = null; // Camera 实例，延迟启动
+
+  function setupMediaPipe() {
+    if (typeof Hands === 'undefined' || typeof Camera === 'undefined') {
+      console.warn('MediaPipe not loaded, using click fallback');
+      mediaPipeFailed = true;
+      document.body.classList.remove('gesture-mode');
+      document.body.style.cursor = 'auto';
+      cursorDot.style.display = 'none';
+      cursorGlow.style.display = 'none';
+      cameraHint.textContent = '👆 点击屏幕抽取卡牌';
+      cameraHint.classList.remove('hidden');
+      updateLoading(85);
+      return;
+    }
+
+    try {
+      const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.6,
+      });
+
+      hands.onResults((results) => {
+        if (!mediaPipeReady) {
+          mediaPipeReady = true;
+          updateLoading(90);
+        }
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+          handInFrame = true;
+          const lm = results.multiHandLandmarks[0];
+
+          // 光标位置（手腕）
+          cursorTarget.x = (1 - lm[0].x) * window.innerWidth;
+          cursorTarget.y = lm[0].y * window.innerHeight;
+
+          // 手指张开度：指尖到指根（MCP）平均距离
+          const getDist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+          const fingers = [
+            getDist(lm[8], lm[5]),   // 食指
+            getDist(lm[12], lm[9]),  // 中指
+            getDist(lm[16], lm[13]), // 无名指
+            getDist(lm[20], lm[17]), // 小指
+          ];
+          const rawSpread = fingers.reduce((a,b) => a+b, 0) / fingers.length;
+
+          // 指数平滑（仅用于光标视觉反馈）
+          handOpenness = handOpenness * 0.7 + rawSpread * 0.3;
+
+          // 转换检测：迟滞双阈值，防止噪声导致误触发
+          const FIST_CLOSE_TH = 0.050; // 张开→握拳：必须低于此值
+          const FIST_OPEN_TH  = 0.080; // 握拳→张开：必须高于此值
+          if (!handInitialized) {
+            wasFist = rawSpread < 0.065; // 用中值初始化
+            handInitialized = true;
+          }
+          const isFistNow = wasFist ? (rawSpread < FIST_OPEN_TH) : (rawSpread < FIST_CLOSE_TH);
+          const fistToOpen = wasFist && !isFistNow;
+          const openToFist = !wasFist && isFistNow;
+          wasFist = isFistNow;
+
+          // 存储绝对手掌位置（供 animate 循环使用）
+          lastHandX = lm[9].x;
+          handInFrame = true;
+
+          // ── 状态机 ──
+          if (gestureState === 'idle') {
+            // 张开→握拳 → 选牌
+            if (openToFist) {
+              selectCard();
+            }
+          }
+
+          if (gestureState === 'card_selected') {
+            // 握拳→张开 → 亮牌（冷却期内忽略，防止误判）
+            if (fistToOpen && (Date.now() - cardSelectTime > SELECT_COOLDOWN_MS)) {
+              revealCard();
+            }
+          }
+
+          // 光标反馈：握拳时变红提示
+          if (handOpenness < 0.055) {
+            cursorDot.classList.add('pinching');
+            cursorGlow.classList.add('pinching');
+          } else {
+            cursorDot.classList.remove('pinching');
+            cursorGlow.classList.remove('pinching');
+          }
+
+        } else {
+          handInFrame = false;
+        }
+      });
+
+      // 创建 Camera 实例，但不启动（等 enterMainScene）
+      mediaPipeCamera = new Camera(videoEl, {
+        onFrame: async () => {
+          try { await hands.send({ image: videoEl }); } catch (e) { /* silent */ }
+        },
+        width: 640, height: 480,
+      });
+
+    } catch (err) {
+      console.warn('MediaPipe init error:', err);
+      mediaPipeFailed = true;
+      document.body.classList.remove('gesture-mode');
+      document.body.style.cursor = 'auto';
+      cursorDot.style.display = 'none';
+      cursorGlow.style.display = 'none';
+      cameraHint.textContent = '👆 点击屏幕抽取卡牌';
+      cameraHint.classList.remove('hidden');
+      updateLoading(90);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  14. 光标更新循环
+  // ─────────────────────────────────────────────
+  function updateCursor() {
+    if (mediaPipeFailed) return;
+    cursorCurrent.x += (cursorTarget.x - cursorCurrent.x) * 0.25;
+    cursorCurrent.y += (cursorTarget.y - cursorCurrent.y) * 0.25;
+    cursorDot.style.left = cursorCurrent.x + 'px';
+    cursorDot.style.top = cursorCurrent.y + 'px';
+    cursorGlow.style.left = cursorCurrent.x + 'px';
+    cursorGlow.style.top = cursorCurrent.y + 'px';
+  }
+
+  // ─────────────────────────────────────────────
+  //  15. 鼠标/触摸降级：拖拽旋转圆柱 + 点击抽卡
+  // ─────────────────────────────────────────────
+  let isPointerDown = false;
+  let pointerPrevX = 0;
+
+  function onPointerDown(e) {
+    isPointerDown = true;
+    pointerPrevX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+  }
+  function onPointerMove(e) {
+    if (!isPointerDown) return;
+    const cx = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    const delta = (cx - pointerPrevX) / window.innerWidth;
+    pointerPrevX = cx;
+    if (gestureState === 'idle') {
+      cylinderAngle += delta * 12;
+      cylinderVelocity = delta * 8;
+    }
+  }
+  function onPointerUp(e) {
+    isPointerDown = false;
+  }
+
+  function onCanvasClick(e) {
+    e.preventDefault();
+    // 仅降级模式或无手势时响应点击
+    if (gestureState === 'idle') {
+      if (mediaPipeFailed) selectCard();
+    } else if (gestureState === 'card_selected') {
+      revealCard();
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  16. 加载流程控制
+  // ─────────────────────────────────────────────
+  let loadProgress = 0;
+
+  function updateLoading(pct) {
+    if (pct > loadProgress) loadProgress = pct;
+    loaderBar.style.width = loadProgress + '%';
+    const texts = [
+      '正在唤醒星辰之力…',  '连接时空虫洞…',    '加载宇宙纹理…',
+      '校准命运之轮…',     '召唤星际能量…',     '构筑星门…',
+      '万物就绪 ✦'
+    ];
+    const idx = Math.min(Math.floor(loadProgress / 15), texts.length - 1);
+    loaderText.textContent = texts[idx] || texts[texts.length-1];
+  }
+
+  function finishLoading() {
+    updateLoading(100);
+    setTimeout(() => {
+      loadingOver.classList.add('hidden');
+      // 显示入场动画层
+      introOver.classList.remove('hidden');
+      // 入场动画
+      gsap.fromTo('#intro-overlay .title', { opacity: 0, y: 40 }, {
+        opacity: 1, y: 0, duration: 1.2, ease: 'power3.out'
+      });
+      gsap.fromTo('#intro-overlay .desc', { opacity: 0, y: 20 }, {
+        opacity: 1, y: 0, duration: 1, delay: 0.4, ease: 'power2.out'
+      });
+      gsap.fromTo('#intro-overlay .btn-skip', { opacity: 0, scale: 0.8 }, {
+        opacity: 1, scale: 1, duration: 0.6, delay: 0.8, ease: 'back.out(2)'
+      });
+    }, 400);
+  }
+
+  function enterMainScene() {
+    introOver.classList.add('hidden');
+    header.classList.add('visible');
+    // 激活手势模式
+    document.body.classList.add('gesture-mode');
+    if (mediaPipeFailed) {
+      document.body.classList.remove('gesture-mode');
+      document.body.style.cursor = 'pointer';
+    } else if (mediaPipeCamera) {
+      // 启动摄像头（此时才开启手势交互）
+      mediaPipeCamera.start().catch((err) => {
+        console.warn('Camera start failed:', err);
+        mediaPipeFailed = true;
+        document.body.classList.remove('gesture-mode');
+        document.body.style.cursor = 'auto';
+        cursorDot.style.display = 'none';
+        cursorGlow.style.display = 'none';
+        cameraHint.textContent = '👆 点击屏幕抽取卡牌';
+        cameraHint.classList.remove('hidden');
+      });
+    }
+    // 首次操作提示
+    setTimeout(() => {
+      if (drawnCount === 0) {
+        if (mediaPipeFailed) showToast('👆 点击屏幕，抽取你的命运之牌', 3000);
+        else showToast('🤜 握拳选牌 · 展开亮牌 🤚', 3500);
+      }
+    }, 1500);
+    // 几秒后自动隐藏摄像头提示
+    setTimeout(() => { cameraHint.classList.add('hidden'); }, 5000);
+  }
+
+  // ─────────────────────────────────────────────
+  //  17. 初始化
+  // ─────────────────────────────────────────────
+  async function init() {
+    // DOM 就绪
+    updateLoading(10);
+
+    // 预创建卡牌网格并排列圆柱
+    initCardGroups();
+    layoutCardCylinder();
+
+    // 启动 Three.js 动画循环
+    function animate() {
+      animFrameId = requestAnimationFrame(animate);
+
+      // 星空旋转
+      stars.rotation.y += 0.0002;
+      stars.rotation.x += 0.00005;
+      sparkles.rotation.y += 0.0003;
+      sparkles.rotation.x -= 0.00008;
+
+      // 圆柱控制
+      if (gestureState === 'idle') {
+        if (handInFrame) {
+          // 绝对位置映射：手掌在画面左侧→圆柱转左侧，中央→正面，右侧→右侧
+          const targetAngle = (0.5 - lastHandX) * Math.PI * 2;
+          const diff = targetAngle - cylinderAngle;
+          cylinderAngle += diff * 0.15; // 平滑跟随
+        } else {
+          // 无手检测时自然阻尼减速
+          cylinderVelocity *= 0.90;
+          cylinderAngle += cylinderVelocity;
+        }
+      }
+      cylinderGroup.rotation.y = cylinderAngle;
+
+      updateCursor();
+      composer.render();
+    }
+    animate();
+    updateLoading(20);
+
+    // 模拟加载进度（实际资源加载会通过事件推进）
+    const simProgress = () => {
+      const steps = [
+        { p: 30, d: 300 },  { p: 40, d: 500 },  { p: 50, d: 400 },
+        { p: 55, d: 600 },  { p: 60, d: 500 },  { p: 65, d: 700 },
+        { p: 70, d: 400 },
+      ];
+      steps.forEach(({ p, d }) => {
+        setTimeout(() => updateLoading(p), d);
+      });
+    };
+    simProgress();
+
+    // 设置 MediaPipe（异步，会推进进度）
+    updateLoading(25);
+    setupMediaPipe();
+
+    // 等待所有初始加载完成
+    await new Promise(r => setTimeout(r, 1500));
+
+    // 强制完成（MediaPipe 可能未响应）
+    if (loadProgress < 80) updateLoading(80);
+
+    await new Promise(r => setTimeout(r, 800));
+    finishLoading();
+
+    // 启动按钮监听
+    btnStart.addEventListener('click', enterMainScene);
+    btnStart.addEventListener('touchend', (e) => { e.preventDefault(); enterMainScene(); });
+
+    // 点击/拖拽降级抽卡
+    renderer.domElement.addEventListener('click', onCanvasClick);
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    renderer.domElement.addEventListener('pointermove', onPointerMove);
+    renderer.domElement.addEventListener('pointerup', onPointerUp);
+    renderer.domElement.addEventListener('pointerleave', onPointerUp);
+    // 触摸事件
+    renderer.domElement.addEventListener('touchstart', (e) => {
+      if (mediaPipeFailed) { onPointerDown(e); }
+    }, { passive: true });
+    renderer.domElement.addEventListener('touchmove', (e) => {
+      if (mediaPipeFailed) { onPointerMove(e); }
+    }, { passive: true });
+    renderer.domElement.addEventListener('touchend', (e) => {
+      if (mediaPipeFailed) { onPointerUp(e); e.preventDefault(); onCanvasClick(e); }
+    });
+
+    // 窗口自适应
+    window.addEventListener('resize', onResize);
+  }
+
+  // ─────────────────────────────────────────────
+  //  18. 响应式
+  // ─────────────────────────────────────────────
+  function onResize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    composer.setSize(w, h);
+    cursorTarget.x = w / 2; cursorTarget.y = h / 2;
+  }
+
+  // ─────────────────────────────────────────────
+  //  19. 启动
+  // ─────────────────────────────────────────────
+  init();
+
+  // ─────────────────────────────────────────────
+  //  20. 暴露 PHOTO_BASE64 到全局（便于调试替换）
+  // ─────────────────────────────────────────────
+  window.PHOTO_BASE64 = PHOTO_BASE64;
+  window.CARD_DESIGNS = CARD_DESIGNS;
+
+  console.log('✦ 宇宙卡牌已启动 ✦');
+  console.log('💡 在控制台修改 window.PHOTO_BASE64 可替换卡牌图片');
+
+  </script>
+</body>
+</html>
