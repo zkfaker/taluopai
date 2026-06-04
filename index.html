@@ -1095,10 +1095,8 @@
           const openToFist = !wasFist && isFistNow;
           wasFist = isFistNow;
 
-          // 存储绝对手掌位置（供 animate 循环使用）
-          // 根据画面宽高比自适应选择水平轴：横画幅→lm[9].x，竖画幅→lm[9].y
-          const isImageLandscape = videoEl.videoWidth > videoEl.videoHeight;
-          lastHandX = isImageLandscape ? lm[9].x : lm[9].y;
+          // 存储手掌水平位置（供 animate 循环控制圆柱旋转）
+          lastHandX = lm[9].x;
           handInFrame = true;
 
           // ── 状态机 ──
