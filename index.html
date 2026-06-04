@@ -129,36 +129,71 @@
       transform: scale(1.04);
     }
 
-    /* ── 横屏提示遮罩（仅移动端竖屏时显示）── */
-    #landscape-prompt {
+    /* ── 手势引导弹窗 ── */
+    #gesture-guide {
       position: fixed; inset: 0; z-index: 950;
       display: none;
-      flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(5,5,16,0.95);
+      align-items: center; justify-content: center;
+      background: rgba(5,5,16,0.88);
       backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      padding: 20px;
     }
-    #landscape-prompt.show { display: flex; }
-    #landscape-prompt .rotate-icon {
-      font-size: clamp(48px,12vw,96px);
-      animation: rotateHint 2.5s ease-in-out infinite;
-      margin-bottom: 24px;
-    }
-    @keyframes rotateHint {
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(90deg); }
-    }
-    #landscape-prompt .hint-text {
-      font-size: clamp(18px,4vw,32px);
-      color: rgba(255,255,255,0.7);
-      letter-spacing: 4px;
+    #gesture-guide.show { display: flex; }
+    #gesture-guide .guide-content {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: clamp(24px,5vw,40px);
+      max-width: 440px;
+      width: 100%;
       text-align: center;
     }
-    #landscape-prompt .hint-sub {
-      margin-top: 12px;
-      font-size: clamp(12px,2.5vw,18px);
-      color: rgba(255,255,255,0.3);
-      letter-spacing: 2px;
+    #gesture-guide .guide-title {
+      font-size: clamp(20px,4.5vw,28px);
+      font-weight: 700;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, #ffd700, #ff6a00);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
+    #gesture-guide .guide-items {
+      display: flex; flex-direction: column; gap: 14px;
+      margin-bottom: 20px;
+    }
+    #gesture-guide .guide-item {
+      display: flex; align-items: center; gap: 14px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 12px 16px;
+      text-align: left;
+    }
+    #gesture-guide .guide-icon {
+      font-size: 28px; width: 44px; text-align: center; flex-shrink: 0;
+    }
+    #gesture-guide .guide-text {
+      font-size: clamp(13px,3vw,15px);
+      color: rgba(255,255,255,0.7);
+      line-height: 1.5;
+    }
+    #gesture-guide .guide-text strong {
+      color: rgba(255,255,255,0.95);
+    }
+    #gesture-guide .guide-tip {
+      font-size: clamp(12px,2.5vw,14px);
+      color: rgba(255,215,0,0.6);
+      margin-bottom: 20px;
+      padding: 10px;
+      background: rgba(255,215,0,0.06);
+      border-radius: 8px;
+    }
+    #gesture-guide .guide-btn {
+      padding: 12px 36px; border-radius: 50px;
+      background: linear-gradient(135deg, #ff6a00, #ee0979);
+      border: none; color: #fff;
+      font-size: clamp(14px,3vw,16px); letter-spacing: 2px;
+      cursor: pointer; transition: transform 0.2s;
+    }
+    #gesture-guide .guide-btn:hover { transform: scale(1.05); }
+    #gesture-guide .guide-btn:active { transform: scale(0.96); }
 
     /* ── Three Container ── */
     #three-container {
@@ -321,11 +356,27 @@
     <button class="btn-skip" id="btn-start">✦ 开始探索</button>
   </div>
 
-  <!-- 横屏提示（移动端竖屏时提示，可点击关闭） -->
-  <div id="landscape-prompt">
-    <div class="rotate-icon">📱</div>
-    <div class="hint-text">请横屏体验</div>
-    <div class="hint-sub">旋转手机至横屏方向（点击关闭）</div>
+  <!-- 手势说明弹窗 -->
+  <div id="gesture-guide">
+    <div class="guide-content">
+      <div class="guide-title">🤚 手势操作指南</div>
+      <div class="guide-items">
+        <div class="guide-item">
+          <span class="guide-icon">✋</span>
+          <div class="guide-text"><strong>五指张开</strong><br/>初始状态，面对屏幕</div>
+        </div>
+        <div class="guide-item">
+          <span class="guide-icon">🤜</span>
+          <div class="guide-text"><strong>握拳</strong><br/>抓取选中卡牌</div>
+        </div>
+        <div class="guide-item">
+          <span class="guide-icon">🖐</span>
+          <div class="guide-text"><strong>张开手掌</strong><br/>展示卡牌内容</div>
+        </div>
+      </div>
+      <div class="guide-tip">💡 建议手掌离摄像头 40cm 左右，效果最佳</div>
+      <button class="guide-btn">✦ 知道了，开始吧</button>
+    </div>
   </div>
 
   <!-- Three.js 渲染目标 -->
@@ -398,9 +449,8 @@
   let handOpenness = 0.15;
   // 上一帧是否为握拳（用于转换检测）
   let wasFist = false;
-  // 移动端检测 + 横屏状态
+  // 移动端检测
   let isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-  let isLandscape = true;
 
   // ─────────────────────────────────────────────
   //  3. PHOTO_BASE64 — 预留，可替换为真实图片
@@ -1240,11 +1290,20 @@
   }
 
   function enterMainScene() {
-    // 移动端竖屏时提示但不阻塞
-    if (isMobile) {
-      const w = window.innerWidth, h = window.innerHeight;
-      if (w <= h) showToast('🔄 建议横屏体验', 2000);
+    // 移动端显示手势引导弹窗
+    if (isMobile && !window._guideShown) {
+      const guide = document.getElementById('gesture-guide');
+      if (guide) {
+        guide.classList.add('show');
+        guide.querySelector('.guide-btn').addEventListener('click', function handler(){
+          guide.classList.remove('show');
+          window._guideShown = true;
+          enterMainScene();
+        }, { once: true });
+        return;
+      }
     }
+    window._guideShown = true;
     introOver.classList.add('hidden');
     header.classList.add('visible');
     // 激活手势模式
@@ -1365,42 +1424,16 @@
       if (mediaPipeFailed) { onPointerUp(e); e.preventDefault(); onCanvasClick(e); }
     });
 
-    // 横屏提示可点击关闭
-    const lp = document.getElementById('landscape-prompt');
-    if (lp) lp.addEventListener('click', () => lp.classList.remove('show'));
-
     // 窗口自适应（移动端 visualViewport 更准确）
     window.addEventListener('resize', onResize);
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', onResize);
     }
-
-    // 移动端横屏检测
-    checkOrientation();
-    if (screen.orientation) {
-      screen.orientation.addEventListener('change', checkOrientation);
-    }
   }
 
   // ─────────────────────────────────────────────
-  //  18. 响应式 + 横屏检测
+  //  18. 响应式
   // ─────────────────────────────────────────────
-  function checkOrientation() {
-    if (!isMobile) return;
-    const w = window.innerWidth, h = window.innerHeight;
-    isLandscape = w > h;
-    const lp = document.getElementById('landscape-prompt');
-    if (!lp) return;
-    if (!isLandscape) {
-      lp.classList.add('show');
-      // 3 秒后自动消失，不阻塞操作
-      clearTimeout(lp._autoHide);
-      lp._autoHide = setTimeout(() => lp.classList.remove('show'), 3000);
-    } else {
-      lp.classList.remove('show');
-    }
-  }
-
   function onResize() {
     // 移动端优先使用 visualViewport 获取真实可视区域（适配地址栏收起）
     let w, h;
@@ -1416,7 +1449,6 @@
     renderer.setSize(w, h);
     composer.setSize(w, h);
     cursorTarget.x = w / 2; cursorTarget.y = h / 2;
-    checkOrientation();
   }
 
   // ─────────────────────────────────────────────
