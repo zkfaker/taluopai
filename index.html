@@ -1290,8 +1290,8 @@
   }
 
   function enterMainScene() {
-    // 移动端显示手势引导弹窗
-    if (isMobile && !window._guideShown) {
+    // 手势引导弹窗
+    if (!window._guideShown) {
       const guide = document.getElementById('gesture-guide');
       if (guide) {
         guide.classList.add('show');
