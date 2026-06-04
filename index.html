@@ -314,11 +314,11 @@
     <button class="btn-skip" id="btn-start">✦ 开始探索</button>
   </div>
 
-  <!-- 横屏提示（移动端竖屏时覆盖） -->
+  <!-- 横屏提示（移动端竖屏时提示，可点击关闭） -->
   <div id="landscape-prompt">
     <div class="rotate-icon">📱</div>
     <div class="hint-text">请横屏体验</div>
-    <div class="hint-sub">旋转手机至横屏方向</div>
+    <div class="hint-sub">旋转手机至横屏方向（点击关闭）</div>
   </div>
 
   <!-- Three.js 渲染目标 -->
@@ -1235,10 +1235,10 @@
   }
 
   function enterMainScene() {
-    // 移动端竖屏时阻止进入主场景
-    if (isMobile && !isLandscape) {
-      showToast('🔄 请先旋转手机至横屏');
-      return;
+    // 移动端竖屏时提示但不阻塞
+    if (isMobile) {
+      const w = window.innerWidth, h = window.innerHeight;
+      if (w <= h) showToast('🔄 建议横屏体验', 2000);
     }
     introOver.classList.add('hidden');
     header.classList.add('visible');
@@ -1360,6 +1360,10 @@
       if (mediaPipeFailed) { onPointerUp(e); e.preventDefault(); onCanvasClick(e); }
     });
 
+    // 横屏提示可点击关闭
+    const lp = document.getElementById('landscape-prompt');
+    if (lp) lp.addEventListener('click', () => lp.classList.remove('show'));
+
     // 窗口自适应
     window.addEventListener('resize', onResize);
 
@@ -1379,10 +1383,11 @@
     isLandscape = w > h;
     const lp = document.getElementById('landscape-prompt');
     if (!lp) return;
-    // 横屏提示：仅在移动端竖屏 + 未进入主场景前显示
-    // 进入主场景后如果用户旋转回竖屏，也给予提示
     if (!isLandscape) {
       lp.classList.add('show');
+      // 3 秒后自动消失，不阻塞操作
+      clearTimeout(lp._autoHide);
+      lp._autoHide = setTimeout(() => lp.classList.remove('show'), 3000);
     } else {
       lp.classList.remove('show');
     }
