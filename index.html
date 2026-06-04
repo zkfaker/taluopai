@@ -125,6 +125,37 @@
       transform: scale(1.04);
     }
 
+    /* ── 横屏提示遮罩（仅移动端竖屏时显示）── */
+    #landscape-prompt {
+      position: fixed; inset: 0; z-index: 950;
+      display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(5,5,16,0.95);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    }
+    #landscape-prompt.show { display: flex; }
+    #landscape-prompt .rotate-icon {
+      font-size: clamp(48px,12vw,96px);
+      animation: rotateHint 2.5s ease-in-out infinite;
+      margin-bottom: 24px;
+    }
+    @keyframes rotateHint {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(90deg); }
+    }
+    #landscape-prompt .hint-text {
+      font-size: clamp(18px,4vw,32px);
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 4px;
+      text-align: center;
+    }
+    #landscape-prompt .hint-sub {
+      margin-top: 12px;
+      font-size: clamp(12px,2.5vw,18px);
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 2px;
+    }
+
     /* ── Three Container ── */
     #three-container {
       position: fixed; inset: 0; z-index: 1;
@@ -242,6 +273,15 @@
     }
     #camera-hint.hidden { opacity: 0; }
 
+    /* ── 移动端横屏优化 ── */
+    @media (orientation: landscape) and (max-height: 500px) {
+      #header { top: 6px; padding: 6px 14px; gap: 8px; min-width: unset; width: 70vw; }
+      #header .title-part { font-size: 11px; }
+      #header .count { font-size: 10px; }
+      #header .progress-wrap { min-width: 60px; }
+      .toast { padding: 10px 16px; font-size: 13px; bottom: 16px; }
+    }
+
     /* ── Responsive ── */
     @media (max-width: 480px) {
       #header { top: 10px; padding: 8px 16px; gap: 10px; min-width: unset; width: 92vw; }
@@ -272,6 +312,13 @@
     <div class="title">星 辰 命 运</div>
     <div class="desc">以指尖触碰星辰 · 揭开你的命运之牌</div>
     <button class="btn-skip" id="btn-start">✦ 开始探索</button>
+  </div>
+
+  <!-- 横屏提示（移动端竖屏时覆盖） -->
+  <div id="landscape-prompt">
+    <div class="rotate-icon">📱</div>
+    <div class="hint-text">请横屏体验</div>
+    <div class="hint-sub">旋转手机至横屏方向</div>
   </div>
 
   <!-- Three.js 渲染目标 -->
@@ -344,6 +391,9 @@
   let handOpenness = 0.15;
   // 上一帧是否为握拳（用于转换检测）
   let wasFist = false;
+  // 移动端检测 + 横屏状态
+  let isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  let isLandscape = true;
 
   // ─────────────────────────────────────────────
   //  3. PHOTO_BASE64 — 预留，可替换为真实图片
@@ -1046,7 +1096,9 @@
           wasFist = isFistNow;
 
           // 存储绝对手掌位置（供 animate 循环使用）
-          lastHandX = lm[9].x;
+          // 根据画面宽高比自适应选择水平轴：横画幅→lm[9].x，竖画幅→lm[9].y
+          const isImageLandscape = videoEl.videoWidth > videoEl.videoHeight;
+          lastHandX = isImageLandscape ? lm[9].x : lm[9].y;
           handInFrame = true;
 
           // ── 状态机 ──
@@ -1183,6 +1235,11 @@
   }
 
   function enterMainScene() {
+    // 移动端竖屏时阻止进入主场景
+    if (isMobile && !isLandscape) {
+      showToast('🔄 请先旋转手机至横屏');
+      return;
+    }
     introOver.classList.add('hidden');
     header.classList.add('visible');
     // 激活手势模式
@@ -1305,11 +1362,32 @@
 
     // 窗口自适应
     window.addEventListener('resize', onResize);
+
+    // 移动端横屏检测
+    checkOrientation();
+    if (screen.orientation) {
+      screen.orientation.addEventListener('change', checkOrientation);
+    }
   }
 
   // ─────────────────────────────────────────────
-  //  18. 响应式
+  //  18. 响应式 + 横屏检测
   // ─────────────────────────────────────────────
+  function checkOrientation() {
+    if (!isMobile) return;
+    const w = window.innerWidth, h = window.innerHeight;
+    isLandscape = w > h;
+    const lp = document.getElementById('landscape-prompt');
+    if (!lp) return;
+    // 横屏提示：仅在移动端竖屏 + 未进入主场景前显示
+    // 进入主场景后如果用户旋转回竖屏，也给予提示
+    if (!isLandscape) {
+      lp.classList.add('show');
+    } else {
+      lp.classList.remove('show');
+    }
+  }
+
   function onResize() {
     const w = window.innerWidth, h = window.innerHeight;
     camera.aspect = w / h;
@@ -1317,6 +1395,7 @@
     renderer.setSize(w, h);
     composer.setSize(w, h);
     cursorTarget.x = w / 2; cursorTarget.y = h / 2;
+    checkOrientation();
   }
 
   // ─────────────────────────────────────────────
