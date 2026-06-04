@@ -48,6 +48,10 @@
       -webkit-font-smoothing: antialiased;
       user-select: none; -webkit-user-select: none;
     }
+    /* 移动端用 dvh 适配地址栏收起 */
+    @supports (height: 100dvh) {
+      html, body { height: 100dvh; }
+    }
 
     /* ── Error Toast ── */
     #error-toast { display: none; } /* shown by JS */
@@ -159,6 +163,9 @@
     /* ── Three Container ── */
     #three-container {
       position: fixed; inset: 0; z-index: 1;
+    }
+    @supports (height: 100dvh) {
+      #three-container { bottom: 0; top: 0; left: 0; right: 0; }
     }
 
     /* ── Header ── */
@@ -1362,8 +1369,11 @@
     const lp = document.getElementById('landscape-prompt');
     if (lp) lp.addEventListener('click', () => lp.classList.remove('show'));
 
-    // 窗口自适应
+    // 窗口自适应（移动端 visualViewport 更准确）
     window.addEventListener('resize', onResize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onResize);
+    }
 
     // 移动端横屏检测
     checkOrientation();
@@ -1392,7 +1402,15 @@
   }
 
   function onResize() {
-    const w = window.innerWidth, h = window.innerHeight;
+    // 移动端优先使用 visualViewport 获取真实可视区域（适配地址栏收起）
+    let w, h;
+    if (window.visualViewport && isMobile) {
+      w = window.visualViewport.width;
+      h = window.visualViewport.height;
+    } else {
+      w = window.innerWidth;
+      h = window.innerHeight;
+    }
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
